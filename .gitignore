@@ -58,6 +58,10 @@ compile_commands.json
 *.bak
 *.swp
 
+never.h
+secrets.h
+*.bin
+
 # vcpkg
 vcpkg_installed/
 
