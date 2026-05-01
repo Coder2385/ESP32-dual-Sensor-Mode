@@ -1,11 +1,89 @@
+# ESP32-Smart-Environmental-Alert-Node 
 
-This directory is intended for PlatformIO Test Runner and project tests.
+A standalone IoT system that measures environmental data (temperature & humidity) and displays it live on an OLED screen and in a web browser without internet or external cloud services. 
+When temperature reaches or exceeds 28°C, it automatically triggers a local alert: an LED turns on, the OLED shows Warm!, and the web page highlights the value in red. 
+Perfect for beginners who want to visualize sensor data locally over Wi-Fi while learning how IoT devices can act not just observe.
+Press the button to toggle between sensor readings (temperature/humidity) and network info (IP address + uptime). 
+The display switches instantly on press and returns to sensor mode when released.
 
-Unit Testing is a software testing method by which individual units of
-source code, sets of one or more MCU program modules together with associated
-control data, usage procedures, and operating procedures, are tested to
-determine whether they are fit for use. Unit testing finds problems early
-in the development cycle.
+| ![Setup](images/setup.jpg) | ![OLED](images/oled.jpg)
 
-More information about PlatformIO Unit Testing:
-- https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+---
+
+## ✨ Features
+
+- 🌡️ Measures temperature and humidity using a BME280 sensor  
+- 🖥️ Displays live data on an SSD1306 OLED screen (128x64)  
+- 📶 Creates its own WiFi hotspot (`MijnESP32`)  
+- 🌐 Local web server at `http://192.168.4.1`  
+- ♻️ Auto-refreshes every 2 seconds (via JavaScript)  
+- ⚠️ Error handling for sensor failures or loose connections  
+- 🔒 No sensitive data in main code.  
+- 🧠 Non-blocking timing with `millis()` → web server stays responsive
+- 🖱️ Interactive button:
+  - **While pressed**: shows device IP address and uptime  
+  - **Automaticely(after 5 sec)*: returns to live temperature and humidity readings
+- 🌡️ Smart alert system: Reacts to high temperature with LED, OLED, and web feedback. 
+
+---
+
+> ⚠️ **Why no `°` symbol?**  
+> The `Adafruit_SSD1306` library has limited support for special characters like the degree symbol (`°`). To keep the code simple and reliable for beginners, the OLED displays only `"C"` instead of `"°C"`.  
+>   
+> ✅ The **web version** (in your browser) **does show** the correct `°C` symbol thanks to HTML encoding.
+
+This is a common limitation in embedded displays — not a bug!
+
+## 🧰 Components Required
+
+- ESP32 Development Board (e.g., ESP32 DevKit)
+- BME280 temperature/humidity sensor (I²C)
+- SSD1306 OLED display (128x64, I²C)
+- Breadboard and jumper wires
+- Micro-USB cable
+- RED LED
+- 2x 220 Ohm Resistor
+- 1x pushbutton
+
+## How It Works
+The device runs in **Sensor Mode** by default.  
+Press and hold the button to enter **Info Mode**, which displays:
+- IP address (`Your IP-adress`)  
+- Uptime (formatted as `Xm Ys` since boot)
+
+Release the button to return immediately to Sensor Mode.
+
+---
+
+## 🔌 Wiring (I²C Bus)
+
+Both sensors share the same I²C pins (button added):
+
+| ESP32 Pin | Function | Connected To        |
+|----------|----------|--------------------- |
+| 3.3V     | Power    | VCC of BME280 + OLED |
+| GND      | Ground   | GND of BME280 + OLED + Button(one side) |
+| GPIO21   | SDA      | SDA of BME280 + OLED |
+| GPIO22   | SCL      | SCL of BME280 + OLED |
+| GPIO4    | Input    | Button(other side)   |
+
+Note: The button is connected between GPIO 4 and GND. The code enables the internal pull-up resistor, so no external resistor is required.
+
+
+> 💡 Ensure both devices use **different I²C addresses** (BME280: `0x76`, OLED: `0x3C`).
+
+---
+
+## ▶️ Usage
+
+1. **Install required libraries** in Arduino IDE:  
+   - `Adafruit BME280 Library`  
+   - `Adafruit SSD1306`  
+   - `Adafruit GFX Library`
+
+> 2. Create `secrets.h` by copying `secrets.h.example` to `secrets.h`, then edit the values:
+> ```bash
+> cp secrets.h.example secrets.h
+> ```
+
+> Open `secrets.h` and replace `"MijnESP32"` and `"12345678"` with your WiFi name and password.
