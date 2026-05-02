@@ -42,11 +42,12 @@ unsigned long lastDebounceTime = 0;
 const int debounceDelay = 50;
 
 unsigned long startTime = 0;
-unsigned long longPressDetected = false;
 unsigned long pressDuration = 0;
 unsigned long infoModeStartTime = 0;
 const unsigned long infoModeDuration = 5000;
-unsigned long lastReading = false;
+
+bool longPressDetected = false; 
+int lastReading = HIGH;           
 
 // Create a web server object that listens on port 80 (standard HTTP port)
 WebServer server(80);
@@ -105,23 +106,28 @@ void showSensorData(float temp, float hum) {
     display.setCursor(0, 0);
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
-
+    
+    // Activate warning LED and show alert if temperature exceeds threshold
     if (temp > TEMP_DREMPEL) {
-        digitalWrite(LED_BUTTON, HIGH);
-        display.println("Warm!");
+        digitalWrite(LED_BUTTON, HIGH);  // Turn on LED 
+        display.println("Warm!");        // Show alert on OLED
     } else {
-        digitalWrite(LED_BUTTON, LOW);
+        digitalWrite(LED_BUTTON, LOW);   // Turn off LED 
     }
-     
+    
+    // Display content based on current operating mode
     if (currentMode == MODE_INFO) {
+        // Info Mode: show network and system info
         display.print("IP: ");
-        display.println(WiFi.softAPIP());
-
+        display.println(WiFi.softAPIP());    // Print ESP32's softAP IP address
+        
+        // Calculate uptime in hours, minutes, and seconds
         unsigned long totalSeconds = millis() / 1000;
         unsigned long hours = totalSeconds / 3600;
         unsigned long minutes = (totalSeconds % 3600) / 60;
         unsigned long seconds = totalSeconds % 60;
-
+        
+        // Display uptime in compact format (e.g., "1h 2m 17s" or "2m 17s")
         display.print("Uptime: ");
         if (hours > 0) {
             display.print(hours);
@@ -133,11 +139,13 @@ void showSensorData(float temp, float hum) {
         display.print("s");
 
     } else {
+        // Sensor Mode: show environmental data and button feedback
         if (buttonPressed) {
-          display.println("Button pressed!");
-          buttonPressed = false;
+          display.println("Button pressed!");  // A acknowledgment of button pressed
+          buttonPressed = false;               // Reset flag to show message only once
         }
         display.println("Measure Environment");
+        // Display sensor readings if valid, otherwise show error
         if (!isnan(temp) && !isnan(hum)) {
             display.println("Temperature: " + String(temp, 2) + " C");
             display.println("Humidity:    " + String(hum, 2) + " %");
@@ -145,7 +153,7 @@ void showSensorData(float temp, float hum) {
             display.println("Sensor error");
         }
     }
-
+    // Refresh the OLED screen with updated content
     display.display();
 }
 
@@ -203,44 +211,50 @@ void loop() {
         if (sensorReady && oledReady) {
          float temp = bme.readTemperature();
          float hum = bme.readHumidity();
-
+        
+        // Control warning LED based on temperature threshold
         if (temp > TEMP_DREMPEL) {
-           digitalWrite(LED_BUTTON, HIGH);
+           digitalWrite(LED_BUTTON, HIGH); // Turn on LED if over the threshold
          } else {
-           digitalWrite(LED_BUTTON, LOW);
+           digitalWrite(LED_BUTTON, LOW);  // Turn on LED if under the threshold
         }
         // Read the current raw state of the button (HIGH = released, LOW = pressed)
         int reading = digitalRead(BUTTON_PIN);
+        // Reset debounce timer whenever the raw button state changes
         if (reading != lastReading) {
             lastDebounceTime = millis();
         }
-        lastReading = reading;
-
+        // Update previous reading for next comparison
+        lastReading = reading;  
+        // After stable signal (debounced), update the clean button state
         if (millis() - lastDebounceTime > debounceDelay) {
             buttonState = reading;
         }
-
+        
+        // Detect stable transitions (press or release)
         if (buttonState != lastButtonState) {
             if (buttonState == LOW) {
+               // Button just pressed → start long-press timer
               startTime = millis();
-              longPressDetected = false;
+              longPressDetected = false;  // Allow detection for this press
             }
+            // Remember current state for next cycle
             lastButtonState = buttonState;
         }
-
+        // Continuously check for long press while button is held
         if (buttonState == LOW) {
           unsigned long pressDuration = millis() - startTime;
-
+          // If held for 2+ seconds and not already processed
           if (pressDuration >= 2000 && !longPressDetected) {
-            currentMode = MODE_INFO;
-            infoModeStartTime = millis();
-            longPressDetected = true;
+            currentMode = MODE_INFO;      // Switch to Info Mode
+            infoModeStartTime = millis(); // Start auto-return timer
+            longPressDetected = true;     // Prevent repeated activation
           }
         }
-
+        // Auto-return from Info Mode after 5 seconds
         if (currentMode == MODE_INFO) {
             if (millis() - infoModeStartTime >= infoModeDuration) {
-              currentMode = MODE_SENSOR;
+              currentMode = MODE_SENSOR;  // Return to sensor readings
             }
         }
 
