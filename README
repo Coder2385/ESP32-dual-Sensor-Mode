@@ -4,7 +4,7 @@
 Note (1) = THIS IS AN EXPANSION OF ESP32-LOCAL-SENSOR-NODE
 Note (2) = This is the same as the dual mode switch, but the only difference is 
 that the dual mode switch just toggles between Uptime and Sensor info and with the dual sensor Mode 
-It depends on how long you press the button before it switches to he other Mode.
+It depends on how long you press the button before it switches to the other Mode.
 
 It has a button that does different things depending on how long you hold it short press shows "Button pressed!" on the display, 
 long press switches to an info screen with IP address and uptime. 
